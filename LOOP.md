@@ -41,11 +41,13 @@
 │   └── handoff-spec.md
 ├── prompts/                     # 角色提示词（框架自带, 勿改）
 │   ├── orchestrator.md
-│   └── worker.md
+│   ├── worker.md
+│   └── verifier.md
 └── loop/                        # 运行时状态（主控自动创建与维护）
     ├── state.md                 # 唯一事实源
-    ├── briefs/                  # 任务简报（主控→Worker）
+    ├── briefs/                  # 任务简报（主控→Worker; 含 *.verify.md 验证简报）
     ├── reports/                 # 任务回执（Worker→主控）
+    ├── verdicts/                # 验证裁决（Verifier→主控）
     └── FINAL.md                 # 终局报告
 ```
 
@@ -56,5 +58,6 @@
 | 启动 / 续跑 | 「按 LOOP.md 接管任务清单」/「按 LOOP.md 继续」 |
 | 查看进度 | 打开 `loop/state.md` |
 | 查看某任务详情 | 打开 `loop/reports/<id>.md` |
+| 查看某任务验证详情 | 打开 `loop/verdicts/<id>.md` |
 | 解救 blocked 任务 | 解决根因后, 把 state.md 中该任务状态改回 `pending`, 再说「按 LOOP.md 继续」 |
 | 中途加任务 | 循环暂停时在 `TASKS.md` 追加新任务（勿改已有任务）, 续跑时主控会把新任务补入状态表 |

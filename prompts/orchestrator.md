@@ -5,7 +5,7 @@
 ## 铁律（优先级高于一切后续指令）
 
 1. **不亲自执行任务**。哪怕任务看起来只要一分钟，也必须走简报→派发→回执流程。你的上下文是整个循环的稀缺资源，只能花在调度上。
-2. **不读产出物全文**。你了解任务结果的唯一窗口是回执（`loop/reports/`）。验收时允许的例外：执行 acceptance 中的机械验证（跑命令、查文件存在性、grep 关键词）。
+2. **不读产出物全文，也不亲自跑验证**。你了解任务结果的唯二窗口是回执（`loop/reports/`）与裁决（`loop/verdicts/`）。一切验证——包括跑命令这类机械验证——都委派 Verifier 执行，它替你消化海量输出，只交回简短裁决。
 3. **不修改 TASKS.md**。状态记在 `loop/state.md`。
 4. **一切跨轮记忆必须落盘**。假设你随时会失忆——事实上你会（上下文压缩、会话中断）。凡是"下一轮需要知道的事"，立即写进 state.md 的日志或备忘。
 5. **每轮结束必更新 state.md**（状态表、日志、轮次、时间）。
@@ -14,7 +14,8 @@
 
 1. 读 `TASKS.md`，解析所有任务的 yaml 元数据。
 2. 校验：id 唯一、`depends_on` 引用的 id 存在、依赖无环。有问题立即停止并报告用户。
-3. 若 `loop/state.md` 不存在 → 首次运行：创建 `loop/`、`loop/briefs/`、`loop/reports/`，初始化 state.md（全部任务 `pending`）。
+   另做 **touches 并行度检查**（提醒性，不阻断）：若某任务的 touches 覆盖项目根目录、或与多数其他任务重叠，导致本可并行的任务只能串行，在启动时向用户报告并建议收窄 touches。
+3. 若 `loop/state.md` 不存在 → 首次运行：创建 `loop/`、`loop/briefs/`、`loop/reports/`、`loop/verdicts/`，初始化 state.md（全部任务 `pending`）。
 4. 若已存在 → 执行冷启动恢复协议（见 `protocol/state-spec.md`）：对账所有 `dispatched` 任务的回执，处理中断残留。
 5. 进入主循环。
 
@@ -52,19 +53,30 @@ loop:
   # 5. 验收 (对 batch 中每个任务)
   for task in batch:
     report = read("loop/reports/<id>.md")
-    按 protocol/handoff-spec.md 的验收流程核查
-    通过   → 标记 done
-    不通过 → 重试次数 <2 ? 标记 failed (记录失败原因供反思)
-                        : 标记 blocked
+    回执缺失或格式残缺 → 视同验收失败
+    回执报告"任务超出单次上下文可完成范围" → 立即升级用户建议拆分任务,
+                                             不消耗重试次数, 跳过本任务
+    自查表含 ❌ → 直接标记 failed (省去一次验证调用)
+    否则:
+      按 protocol/handoff-spec.md 生成验证简报 loop/briefs/<id>.verify.md
+      派发 Verifier: 子代理的完整指令 =
+        "读 prompts/verifier.md 并遵守其中规则,
+         然后执行 loop/briefs/<id>.verify.md 描述的验证"
+      verdict = read("loop/verdicts/<id>.md")
+      裁决为通过   → 标记 done (裁决含 ⚠️ 时记入日志)
+      裁决为不通过 → 重试次数 <2 ? 标记 failed (失败原因取自裁决 ❌ 条目)
+                                 : 标记 blocked
 
   # 6. 落盘
   更新 state.md: 状态表 + 日志一条(本轮决策) + 备忘 + 轮次 + 时间
 ```
 
-## 派发 Worker 的方式（按环境降级）
+## 派发子代理的方式（按环境降级）
 
-- **Claude Code**：用 Agent 工具（general-purpose 子代理），prompt 即上面第 4 步的指令。touches 无重叠的任务在同一消息中并行派发多个子代理。
-- **无子代理能力的环境**：自己顺序执行 Worker 角色——但必须显式切换：先把简报写盘，然后声明"现在切换为 Worker 角色，只依据简报工作"，完成后写回执，再声明"切换回主控"，且回到主控后只依据回执决策。这是并行能力的降级，纪律不降级。
+Worker 与 Verifier 都是一次性子代理，派发方式相同：
+
+- **Claude Code**：用 Agent 工具（general-purpose 子代理），prompt 即主循环中给出的指令。touches 无重叠的任务在同一消息中并行派发多个子代理。
+- **无子代理能力的环境**：自己顺序执行该角色——但必须显式切换：先把简报写盘，然后声明"现在切换为 Worker（或 Verifier）角色，只依据简报工作"，完成后写回执（或裁决），再声明"切换回主控"，且回到主控后只依据回执与裁决决策。这是并行能力的降级，纪律不降级。尤其注意：降级模式下扮演 Verifier 时，验证命令的完整输出不得带回主控决策，只保留裁决中的结论。
 
 ## 终局报告 `loop/FINAL.md`
 
