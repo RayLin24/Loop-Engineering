@@ -27,6 +27,9 @@
 ## 上游交接
 无
 
+## 全局决策记录
+无
+
 ## 允许写入的路径
 - src/js/storage.js
 - docs/data-model.md
@@ -72,7 +75,7 @@
 无
 ```
 
-**主控验收**：读两份回执 → 自查全 ✅ → 为 T1、T2 各生成验证简报（`loop/briefs/T1.verify.md`、`T2.verify.md`），派发 Verifier 独立核查（grep storage.js 确认四个 export 存在；确认 index.html、style.css 存在且结构符合验收标准）→ 读回两份裁决（`loop/verdicts/T1.md`、`T2.md`），总裁决均为"通过"。
+**主控验收**：读两份回执 → 自查全 ✅，产出物均在 touches 范围内 → 为 T1、T2 各生成验证简报（`loop/briefs/T1.verify.md`、`T2.verify.md`，含各自的 constraints）→ 派发 Verifier 独立核查（grep storage.js 确认四个 export 存在与 "bm:" 键名前缀；确认 index.html、style.css 存在且无内联样式）→ 读回两份裁决（`loop/verdicts/T1.md`、`T2.md`），总裁决均为"通过" → 把 T1 回执的三条「关键决策」追加进 `loop/decisions.md`。
 
 第 1 轮落盘，state.md 更新：
 
@@ -89,7 +92,7 @@
 
 就绪扫描：T3 的依赖 T1、T2 均 done → 就绪；T4、T5 依赖 T3，未就绪。本批只有 T3。
 
-主控生成 `loop/briefs/T3.md`，其中「上游交接」一节由 T1、T2 回执**自动组装**——这就是任务间传递信息的唯一通道：
+主控生成 `loop/briefs/T3.md`，其中「上游交接」一节由 T1、T2 回执**自动组装**——这是任务间传递信息的主通道（全局性决策另经 `loop/decisions.md` 注入）：
 
 ```markdown
 ## 上游交接
@@ -102,7 +105,7 @@
 
 Worker T3 执行后回执自查报了一个 ❌：「URL 非法时给出提示且不保存 — ❌ 仅校验了非空，未校验格式」。
 
-**主控处理失败**：标记 T3 `failed`（重试 0→记录原因），生成第 2 份简报 `loop/briefs/T3.md`（尝试次数: 2），末尾追加：
+**主控处理失败**：标记 T3 `failed`。因为这是 Worker **诚实自查**报出的首次失败，不计入重试次数（自首从宽）。先把上次尝试归档（`briefs/T3.attempt1.md`、`reports/T3.attempt1.md`），再生成第 2 份简报 `loop/briefs/T3.md`（尝试次数: 2），末尾追加：
 
 ```markdown
 ## 上次失败的反思
