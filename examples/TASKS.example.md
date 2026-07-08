@@ -77,6 +77,7 @@ depends_on: [T3]
 touches:
   - src/js/porter.js
   - src/index.html
+timeout: 45m   # 涉及文件读写交互的手工验证较多, 放宽默认 30m 租约
 acceptance:
   - 点击导出按钮下载包含全部书签的 JSON 文件
   - 通过文件选择器导入 JSON 后, 书签合并进现有数据（id 冲突时保留现有）
