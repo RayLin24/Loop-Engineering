@@ -18,9 +18,10 @@
 
 | 角色 | 上下文预算 | 纪律 |
 |---|---|---|
-| 主控 | 全循环存活，最稀缺 | 只读清单/状态/回执/裁决，禁止执行任务、禁止读产出物全文、禁止亲自跑验证 |
+| 主控 | 全循环存活，最稀缺 | 只读清单/状态/回执/裁决/元报告，禁止执行任务、禁止读产出物全文、禁止亲自跑验证 |
 | Worker | 单任务存活，用完即弃 | 只读自己的简报，任务再复杂也不污染主控 |
 | Verifier | 单次验证存活，用完即弃 | 独立核查验收标准，消化构建日志与产出物全文，只交回 ≤30 行裁决 |
+| Meta-Analyst | 单次分析存活，用完即弃 | 只读轨迹（state.md + 归档回执/裁决），不碰产出物与命令，只交回 ≤40 行元报告 |
 | 文件系统 | 无限、持久 | 一切跨轮记忆的唯一载体 |
 
 信息在角色间流动时**强制过窄口径**：主控→Worker 只有简报，Worker→主控只有 ≤60 行的结构化回执，Verifier→主控只有 ≤30 行的裁决。这个"信息漏斗"是刻意的——它逼迫每一层只传递决策所需的最小信息，从结构上杜绝上下文膨胀。
@@ -35,6 +36,7 @@
 - **ReAct**：Worker 内部采用思考-行动交替（见 `prompts/worker.md` 工作流程）。
 - **Reflexion**：验收失败后，主控写出失败反思注入重试简报，而非原样重发。
 - **Orchestrator-Worker**（Anthropic 多智能体研究系统的核心模式）：主从分离 + 结构化交接。
+- **Bilevel / Autoresearch**（[karpathy/autoresearch](https://github.com/karpathy/autoresearch)、[Bilevel-Autoresearch](https://github.com/EdwardOptimization/Bilevel-Autoresearch)）：内层循环优化任务产出，元循环优化循环自身的运行方式（见 `protocol/meta-spec.md`）。从前者借来「评测不可被优化对象篡改」（prompts/protocol 运行期只读, 对应其 `prepare.py` 只读）与量化台账（state.md 循环度量, 对应其 `results.tsv`）；从后者借来 Level 1.5 / Level 2 分层（配置调整 vs 机制建议）与关键隔离约束「经验只影响提案, 永不影响评判」（lessons 只进 Worker 简报, 不进验证简报）。与两者的差异：本框架 Level 2 不自改机制——机制建议只留给人类, 因为这里的"机制"是提示词与协议本身, 让循环自改等于让被测者改考卷。
 
 ## 二、整体架构
 
@@ -83,6 +85,7 @@
 - **纯文件协议**：简报（主控→Worker）、回执（Worker→主控）、裁决（Verifier→主控）是仅有的三条通道，格式见 `protocol/handoff-spec.md`。重试前旧文件归档为 `<id>.attempt<n>.md`，失败历史完整可查。
 - **验收不盲信**：Worker 逐条自查 + 独立上下文的 Verifier 逐条核查（跑命令、读产出物、查约束与 touches 越界），主控只依据 ≤30 行的裁决定 done/failed。诚实自查有激励：Worker 自报 ❌ 的首次失败不消耗重试次数。
 - **失败闭环**：验收失败 → 主控写反思（以裁决 ❌ 条目与 Verifier 的「修复建议」为依据——Verifier 是唯一读过产出物全文的角色）→ 注入重试简报（≤2 次重试）→ 仍败标记 blocked → 不影响其他任务推进 → 最终汇总升级人工。凭据缺失、清单矛盾、破坏性操作、任务超出单次上下文四类问题立即升级。
+- **元循环**（`protocol/meta-spec.md`）：每 5 轮、任务 blocked 或同类失败 ≥3 次时，主控派发一次性 Meta-Analyst 分析循环轨迹——在白名单内调整运行配置（并行度、重试上限、lessons 开关、验证强度），全量重写 `loop/lessons.md`（跨任务失败模式, 注入后续 Worker 简报），并把对 prompts/protocol/清单写法的结构性建议写进元报告留给人类。三条硬边界：机制文件运行期只读、lessons 永不进验证简报、配置调整不越白名单。
 
 ## 四、文件一览
 
@@ -92,9 +95,11 @@
 | [protocol/task-list-spec.md](protocol/task-list-spec.md) | 任务清单格式：字段、依赖语法、验收标准写法 |
 | [protocol/state-spec.md](protocol/state-spec.md) | 状态文件格式、状态机、写入纪律、冷启动恢复协议 |
 | [protocol/handoff-spec.md](protocol/handoff-spec.md) | 简报/回执/裁决模板、验收流程、重试与升级规则 |
+| [protocol/meta-spec.md](protocol/meta-spec.md) | 元循环：触发时机、配置白名单、lessons 隔离约束、元报告格式 |
 | [prompts/orchestrator.md](prompts/orchestrator.md) | 主控提示词：铁律、主循环伪代码、派发方式 |
 | [prompts/worker.md](prompts/worker.md) | Worker 提示词：ReAct 工作流、铁律、回执要点 |
 | [prompts/verifier.md](prompts/verifier.md) | Verifier 提示词：独立验收核查、只读纪律、裁决要点 |
+| [prompts/meta-analyst.md](prompts/meta-analyst.md) | Meta-Analyst 提示词：轨迹诊断、lessons 提炼、只读边界 |
 | [examples/TASKS.example.md](examples/TASKS.example.md) | 任务清单示例（个人书签管理网站, 6 任务带依赖） |
 | [examples/walkthrough.md](examples/walkthrough.md) | 一轮完整循环演练：简报→执行→回执→验收→落盘 |
 

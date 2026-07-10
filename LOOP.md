@@ -4,7 +4,7 @@
 
 ## 这是什么
 
-一个零代码的自主循环工作流框架：你提供一份标准化任务清单（`TASKS.md`），LLM 主控自动拆解调度、派发子任务执行、验收回执、更新状态，循环直至清单完成。全部状态外置于文件，任意时刻中断都可无损续跑。
+一个零代码的自主循环工作流框架：你提供一份标准化任务清单（`TASKS.md`），LLM 主控自动拆解调度、派发子任务执行、验收回执、更新状态，循环直至清单完成。全部状态外置于文件，任意时刻中断都可无损续跑。内置**元循环**（双层设计, 参考 karpathy/autoresearch 与 Bilevel-Autoresearch）：循环定期分析自身运行轨迹，调整运行配置、提炼经验教训注入后续任务。
 
 ## 移植到新项目（三步）
 
@@ -21,6 +21,7 @@
    - `protocol/task-list-spec.md`（任务清单怎么读）
    - `protocol/state-spec.md`(状态文件与冷启动恢复)
    - `protocol/handoff-spec.md`（简报/回执/验收/重试规则）
+   - `protocol/meta-spec.md`（元循环：触发时机、配置白名单、隔离约束）
 2. **判断启动模式**：
    - `loop/state.md` **不存在** → 首次启动：校验 `TASKS.md`，初始化 `loop/` 目录与状态文件，进入主循环。
    - `loop/state.md` **已存在** → 续跑：执行 `protocol/state-spec.md` 中的冷启动恢复协议，对账后进入主循环。
@@ -38,17 +39,21 @@
 ├── protocol/                    # 协议规范（框架自带, 勿改）
 │   ├── task-list-spec.md
 │   ├── state-spec.md
-│   └── handoff-spec.md
+│   ├── handoff-spec.md
+│   └── meta-spec.md
 ├── prompts/                     # 角色提示词（框架自带, 勿改）
 │   ├── orchestrator.md
 │   ├── worker.md
-│   └── verifier.md
+│   ├── verifier.md
+│   └── meta-analyst.md
 └── loop/                        # 运行时状态（主控自动创建与维护）
     ├── state.md                 # 唯一事实源
     ├── decisions.md             # 全局决策记录（跨任务传递关键决策）
+    ├── lessons.md               # 经验教训（元循环提炼, 只注入 Worker 简报）
     ├── briefs/                  # 任务简报（主控→Worker; 含 *.verify.md 验证简报）
     ├── reports/                 # 任务回执（Worker→主控）
     ├── verdicts/                # 验证裁决（Verifier→主控）
+    ├── meta/                    # 元分析报告（Meta-Analyst→主控, 按轮次留档）
     └── FINAL.md                 # 终局报告
 ```
 
@@ -63,3 +68,5 @@
 | 解救 blocked 任务 | 解决根因后, 把 state.md 中该任务状态改回 `pending`, 再说「按 LOOP.md 继续」 |
 | 中途加任务 | 循环暂停时在 `TASKS.md` 追加新任务, 续跑时主控会把新任务补入状态表 |
 | 中途改任务 | 循环暂停时按 `protocol/state-spec.md` 的修订协议操作（仅 `pending` 任务可直接改; `done` 任务的需求变化走追加修复任务） |
+| 查看元循环发现 | 打开 `loop/meta/round<N>.md`（配置调整与机制建议）与 `loop/lessons.md` |
+| 采纳机制建议 | 循环结束后审阅 `FINAL.md`「机制建议汇总」, 由你手动修订 prompts/protocol 或下一份 TASKS.md——运行期间框架文件对所有角色只读 |
