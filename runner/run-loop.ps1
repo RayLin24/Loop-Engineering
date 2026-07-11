@@ -1,4 +1,4 @@
-# run-loop.ps1 — Loop Engineering 无人值守驱动器（Windows）
+﻿# run-loop.ps1 — Loop Engineering 无人值守驱动器（Windows）
 # 用法: 在项目根目录执行  .\runner\run-loop.ps1 [-MaxGenerations 30] [-DangerouslySkipPermissions]
 # 职责: 只做"拉起下一代主控会话 + 判停", 不含任何调度逻辑（调度智能在 prompts/ 与 protocol/）。
 

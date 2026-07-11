@@ -42,3 +42,16 @@
 - 或改用 `-DangerouslySkipPermissions` 开关（传 `--dangerously-skip-permissions`）——**仅限可信仓库与沙箱环境**，请理解其含义后再用。
 
 高风险操作（删除、部署、花钱）的最后防线永远是 TASKS.md 的 `constraints` 与宿主权限系统，驱动器不提供额外沙箱。
+
+## 编码须知（Windows 必读）
+
+`run-loop.ps1` 含中文，**必须存为 UTF-8 with BOM**。Windows PowerShell 5.1 读取无 BOM 的 UTF-8 脚本时会按系统本地代码页（中文机器为 GBK）解码，导致中文变乱码、字符串里的 `{`/`-` 被误判为语法标记，报 `意外的标记"{"` 一类解析错误。
+
+- 编辑本脚本后若用了不带 BOM 的编辑器保存，会退回该问题。VS Code 右下角选 `UTF-8 with BOM` 再保存即可。
+- 快速修复某份文件的编码：
+  ```powershell
+  $f = ".\runner\run-loop.ps1"
+  $c = [System.IO.File]::ReadAllText($f, (New-Object System.Text.UTF8Encoding($false)))
+  [System.IO.File]::WriteAllText($f, $c, (New-Object System.Text.UTF8Encoding($true)))
+  ```
+- `run-loop.sh` 须保持 LF 换行符（勿转 CRLF）。
