@@ -17,15 +17,15 @@ get_status() {
   [[ -f "$FINAL" ]] && { echo "finished"; return; }
   [[ -f "$STATE" ]] || { echo "fresh"; return; }
   local s
-  s=$(grep -oE '^\s*-\s*循环状态:\s*\S+' "$STATE" | head -1 | awk -F': *' '{print $2}')
+  s=$(grep -oE '^\s*-\s*状态:\s*\S+' "$STATE" | head -1 | awk -F': *' '{print $2}')
   echo "${s:-unknown}"
 }
 
-get_round() {
+get_tick() {
   [[ -f "$STATE" ]] || { echo "-1"; return; }
-  local r
-  r=$(grep -oE '^\s*-\s*轮次:\s*[0-9]+' "$STATE" | head -1 | grep -oE '[0-9]+$')
-  echo "${r:--1}"
+  local t
+  t=$(grep -oE '^\s*-\s*项目:.*tick:\s*[0-9]+' "$STATE" | head -1 | grep -oE 'tick:\s*[0-9]+' | grep -oE '[0-9]+$')
+  echo "${t:--1}"
 }
 
 stall=0
@@ -34,22 +34,22 @@ for ((gen = 1; gen <= MAX_GENERATIONS; gen++)); do
   case "$status" in
     finished)
       echo "[runner] 循环已完成, 见 loop/FINAL.md。"; exit 0 ;;
-    awaiting-human)
-      echo "[runner] 循环等待人工介入, 详见 loop/state.md 的日志与备忘。处理后重新运行本脚本。"; exit 2 ;;
+    waiting-human)
+      echo "[runner] 循环等待人工介入: 看 loop/state.md 的备忘与 loop/questions/ 待答问题。处理后重新运行本脚本。"; exit 2 ;;
   esac
 
-  round_before=$(get_round)
+  tick_before=$(get_tick)
   prompt="按 LOOP.md 继续"
   [[ "$status" == "fresh" ]] && prompt="按 LOOP.md 接管任务清单"
-  echo "[runner] 第 ${gen} 代: claude -p \"${prompt}\"  (状态: ${status}, 轮次: ${round_before})"
+  echo "[runner] 第 ${gen} 代: claude -p \"${prompt}\"  (状态: ${status}, tick: ${tick_before})"
 
   claude -p "$prompt" "${PERM_ARGS[@]}"
   # 会话本身失败(非零退出)不立即终止——按停滞检测处理, 给瞬时故障一次机会
 
-  round_after=$(get_round)
-  if (( round_after <= round_before )); then
+  tick_after=$(get_tick)
+  if (( tick_after <= tick_before )); then
     stall=$((stall + 1))
-    echo "[runner] 警告: 本代轮次未前进 (${round_before} -> ${round_after}), 停滞计数 ${stall}/2。"
+    echo "[runner] 警告: 本代 tick 未前进 (${tick_before} -> ${tick_after}), 停滞计数 ${stall}/2。"
     if (( stall >= 2 )); then
       echo "[runner] 连续 2 代无进展, 停止以避免空转烧钱。请人工检查 loop/state.md 与环境。" >&2
       exit 3

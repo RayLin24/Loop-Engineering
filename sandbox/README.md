@@ -1,5 +1,5 @@
-# sandbox — 早期版本试跑存档
+# sandbox — 试跑存档（已清理）
 
-本目录是框架**早期版本**的一次完整试跑存档（CLI 温度换算工具, 2 任务），保留用于展示循环的真实产物形态（简报、回执、终局报告）。
+本目录原用于存放框架早期版本的试跑存档。旧存档（基于 state.md 状态表 + 长驻主控的上古版本）已删除——它与现行设计差异过大，保留只会误导移植者。
 
-**注意**：`sandbox/prompts/` 与 `sandbox/protocol/` 是试跑当时的旧版协议副本，已远落后于根目录的现行版本（旧版基于 state.md 状态表 + 长驻主控；现行版本已重构为 events.jsonl 事件流 + tick 化主控 + 隔离工作区事务 + checks 回归，且无 Verifier 角色的旧版验收流程已废弃）。**以根目录的 `protocol/` 与 `prompts/` 为准**，不要参照本目录内的副本移植框架。
+想看循环的真实产物形态与完整流转，请读根目录的 [examples/walkthrough.md](../examples/walkthrough.md)：它按现行协议（events.jsonl 事件流 + 会话轮换 + worktree 事务 + checks 回归）逐步演练了一轮完整循环。
