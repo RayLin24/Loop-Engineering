@@ -26,7 +26,8 @@ def _load_parsed(tasks_arg: str | None) -> dict:
         return {"name": "", "global_context": "", "tasks": [], "cycle": None, "errors": []}
     p = Path(tasks_arg)
     text = p.read_text(encoding="utf-8")
-    if tasks_arg.endswith(".json"):
+    stripped = text.lstrip()
+    if tasks_arg.endswith(".json") or stripped.startswith("{"):
         data = json.loads(text)
         data.setdefault("tasks", [])
         data.setdefault("cycle", None)

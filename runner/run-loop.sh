@@ -215,8 +215,8 @@ one_tick() {
 
   # 1. read TASKS.md; replay events
   local parsed_file replay_file
-  parsed_file="$(mktemp)"
-  replay_file="$(mktemp)"
+  parsed_file="$(mktemp "${TMPDIR:-/tmp}/loop-tasks.XXXXXX.json")"
+  replay_file="$(mktemp "${TMPDIR:-/tmp}/loop-replay.XXXXXX.json")"
   if ! "$PARSE" "$ROOT/TASKS.md" > "$parsed_file"; then
     local cyc
     cyc="$(python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print("cycle" if p.get("cycle") else "parse-error")' "$parsed_file")"
