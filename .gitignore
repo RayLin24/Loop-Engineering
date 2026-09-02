@@ -1,0 +1,7 @@
+.loop-worktrees/
+.idea/
+loop/**
+!loop/events.jsonl
+__pycache__/
+*.pyc
+.pytest_cache/

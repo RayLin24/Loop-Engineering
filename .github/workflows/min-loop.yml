@@ -1,0 +1,11 @@
+name: min-loop
+on:
+  push:
+  pull_request:
+jobs:
+  section-7:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: MIN-LOOP.md §7 (fake Worker)
+        run: bash tests/min-loop/run-tests.sh
