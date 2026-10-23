@@ -15,7 +15,7 @@
 3. 启动：对 LLM 说「按 LOOP.md 接管任务清单」（每个会话结束后你说「按 LOOP.md 继续」接力）；或运行 `runner/` 驱动器无人值守跑完。
    **注意**：写 TASKS.md 与跑循环务必分属不同会话——主控应从干净上下文起跑，别让它背着勘察和写清单的包袱进循环。
 
-**前置要求**：项目必须是 git 仓库（任务在独立 git worktree 中执行、合并落地、回归保护都依赖它）。不是仓库也无妨——主控首次启动会自行 `git init` 并提交基线。
+**前置要求**：项目必须是 git 仓库（任务在独立 git worktree 中执行、合并落地、回归保护都依赖它）。不是仓库也无妨——主控首次启动会自行 `git init` 并提交基线。封箱提交还需要本机已配置 `user.name` 与 `user.email`；没配的话主控会停下来问你，而不是反复重试。回归脚本用 `bash` 逐个执行。
 
 ## LLM 接管指令（LLM 从这里开始读）
 
@@ -74,12 +74,13 @@
 |---|---|
 | 启动 / 接力续跑 | 「按 LOOP.md 接管任务清单」/「按 LOOP.md 继续」 |
 | 无人值守跑完全程 | 项目根运行 `./runner/run-loop.sh` 或 `.\runner\run-loop.ps1`（权限模式须知见 `runner/README.md`） |
-| 查看进度 | 打开 `loop/state.md`（投影，`状态` 一眼判断：running/waiting-human/finished） |
+| 查看进度 | 打开 `loop/state.md`。`状态` 行只能是 `running`、`waiting-human`、`finished` 之一 |
 | 查看某任务详情 | 打开 `loop/reports/<id>.md`（历次失败尝试在 `<id>.attempt<n>.md`） |
 | 查看某任务验证详情 | 打开 `loop/verdicts/<id>.md` |
 | 回答主控的提问 | 打开 `loop/questions/<id>.md`，在「## 答案」节下填写，保存即可（下轮自动生效） |
 | 解救 blocked 任务 | 解决根因后，在 `loop/inbox/` 写一个指令文件（内容如"重置 T5"），下轮自动处理 |
 | 中途加/改/删任务 | 直接编辑 `TASKS.md`（无需暂停，每轮开头自动同步；仅 `pending` 任务可改可删，规则见 event-spec 修订协议） |
+| 终局之后又追加任务 | 改完 TASKS.md 后先说一次「按 LOOP.md 继续」，等投影从 `finished` 回到 `running`，再跑 runner。驱动器看到 `finished` 会直接退出 |
 | 终止或暂停循环 | 在 `loop/inbox/` 写指令（如"终止循环"） |
 | 查看元循环发现 | 打开 `loop/meta/round<N>.md`（配置调整与机制建议）与 `loop/lessons.md` |
 | 采纳机制建议 | 循环结束后审阅 `FINAL.md`「机制建议汇总」，由你手动修订 prompts/protocol 或下一份 TASKS.md——运行期间框架文件对所有角色只读 |
