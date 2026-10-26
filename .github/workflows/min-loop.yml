@@ -1,7 +1,6 @@
 name: min-loop
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 jobs:
   section-7:
     runs-on: ubuntu-latest
